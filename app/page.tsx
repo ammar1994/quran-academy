@@ -1,99 +1,109 @@
-import Link from "next/link";
-import CourseCard from "@/components/CourseCard";
+"use client";
 
-const featuredCourses = [
-  {
-    id: "1",
-    title: "حفظ جزء عم للمبتدئين",
-    level: "مبتدئ",
-    duration: "3 أشهر",
-    price: "40$ / شهريًا"
-  },
-  {
-    id: "2",
-    title: "تجويد وأحكام التلاوة",
-    level: "متوسط",
-    duration: "شهرين",
-    price: "35$ / شهريًا"
-  },
-  {
-    id: "3",
-    title: "برنامج الحفظ والمراجعة الشامل",
-    level: "كل المستويات",
-    duration: "12 شهرًا",
-    price: "50$ / شهريًا"
-  }
-];
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
-export default function HomePage() {
+type Student = { id: string; full_name: string; email: string; created_at: string };
+type Booking = { id: string; name: string; phone: string; note: string; created_at: string };
+
+export default function AdminPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      const [studentsRes, bookingsRes] = await Promise.all([
+        supabase.from("students").select("*").order("created_at", { ascending: false }),
+        supabase.from("bookings").select("*").order("created_at", { ascending: false })
+      ]);
+      setStudents(studentsRes.data ?? []);
+      setBookings(bookingsRes.data ?? []);
+      setLoading(false);
+    }
+    loadData();
+  }, []);
+
   return (
-    <div>
-      {/* Hero */}
-      <section className="geo-corner relative overflow-hidden">
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-          <p className="mb-4 font-body text-sm font-medium tracking-wide text-clay">
-            بسم الله الرحمن الرحيم
-          </p>
-          <h1 className="max-w-3xl font-display text-4xl font-bold leading-tight text-ink sm:text-5xl">
-            احفظ القرآن الكريم، آية بعد آية،
-            <span className="text-gold"> بصحبة مدرّس يرافقك خطوة بخطوة</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-lg text-ink/70">
-            أكاديمية أونلاين لتعليم القرآن الكريم واللغة العربية، تجمعك بنخبة من
-            المدرسين المجازين، بجدول مرن يناسبك من أي مكان.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Link
-              href="/courses"
-              className="rounded-full bg-gold px-7 py-3 font-medium text-ink transition hover:bg-gold/90"
-            >
-              تصفّح الكورسات
-            </Link>
-            <Link
-              href="/courses#trial"
-              className="rounded-full border border-ink px-7 py-3 font-medium text-ink transition hover:bg-ink hover:text-parchment"
-            >
-              احجز حصة تجريبية مجانية
-            </Link>
-          </div>
-        </div>
-      </section>
+    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <h1 className="font-display text-3xl font-bold text-ink">لوحة الأدمن</h1>
+      <p className="mt-2 text-ink/70">عرض المشتركين وطلبات الحصص التجريبية.</p>
 
-      <div className="geo-divider" />
-
-      {/* Why us */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <h2 className="font-display text-2xl font-bold text-ink">لماذا أكاديميتنا؟</h2>
-        <div className="mt-8 grid gap-8 sm:grid-cols-3">
-          {[
-            { title: "مدرسون مجازون", desc: "كل مدرس معتمد بالسند، ومتخصص في تعليم الأطفال والكبار." },
-            { title: "خطة مخصصة لك", desc: "نضع لك خطة حفظ ومراجعة تناسب مستواك ووقتك المتاح." },
-            { title: "متابعة مستمرة", desc: "تقارير دورية عن تقدمك، ومراجعة منتظمة لما تم حفظه." }
-          ].map((item) => (
-            <div key={item.title} className="rounded-2xl border border-ink/10 bg-white/40 p-6">
-              <h3 className="font-display text-lg font-bold text-ink">{item.title}</h3>
-              <p className="mt-2 text-sm text-ink/70">{item.desc}</p>
+      {loading ? (
+        <p className="mt-10 text-ink/60">جارٍ التحميل...</p>
+      ) : (
+        <>
+          <section className="mt-10">
+            <h2 className="font-display text-xl font-bold text-ink">
+              الطلاب المسجّلون ({students.length})
+            </h2>
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-ink/10">
+              <table className="w-full text-right text-sm">
+                <thead className="bg-ink text-parchment">
+                  <tr>
+                    <th className="px-4 py-3">الاسم</th>
+                    <th className="px-4 py-3">البريد الإلكتروني</th>
+                    <th className="px-4 py-3">تاريخ التسجيل</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((s) => (
+                    <tr key={s.id} className="border-t border-ink/10 bg-white/40">
+                      <td className="px-4 py-3">{s.full_name}</td>
+                      <td className="px-4 py-3">{s.email}</td>
+                      <td className="px-4 py-3">{new Date(s.created_at).toLocaleDateString("ar-EG")}</td>
+                    </tr>
+                  ))}
+                  {students.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-6 text-center text-ink/50">
+                        لا يوجد طلاب مسجلون بعد
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
 
-      <div className="geo-divider" />
+          <div className="geo-divider my-12" />
 
-      {/* Featured courses */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <div className="flex items-end justify-between">
-          <h2 className="font-display text-2xl font-bold text-ink">كورسات مقترحة</h2>
-          <Link href="/courses" className="text-sm font-medium text-gold hover:underline">
-            عرض كل الكورسات ←
-          </Link>
-        </div>
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredCourses.map((course) => (
-            <CourseCard key={course.id} {...course} />
-          ))}
-        </div>
-      </section>
+          <section>
+            <h2 className="font-display text-xl font-bold text-ink">
+              طلبات الحصص التجريبية ({bookings.length})
+            </h2>
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-ink/10">
+              <table className="w-full text-right text-sm">
+                <thead className="bg-ink text-parchment">
+                  <tr>
+                    <th className="px-4 py-3">الاسم</th>
+                    <th className="px-4 py-3">الهاتف</th>
+                    <th className="px-4 py-3">ملاحظات</th>
+                    <th className="px-4 py-3">التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map((b) => (
+                    <tr key={b.id} className="border-t border-ink/10 bg-white/40">
+                      <td className="px-4 py-3">{b.name}</td>
+                      <td className="px-4 py-3">{b.phone}</td>
+                      <td className="px-4 py-3">{b.note || "-"}</td>
+                      <td className="px-4 py-3">{new Date(b.created_at).toLocaleDateString("ar-EG")}</td>
+                    </tr>
+                  ))}
+                  {bookings.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-6 text-center text-ink/50">
+                        لا يوجد طلبات بعد
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
